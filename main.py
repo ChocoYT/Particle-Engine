@@ -1,9 +1,11 @@
 import pygame
+
 from configobj import ConfigObj
 from typing import Union
 from os import getcwd
 
-from particle import Particle, particleGroup
+from environment import Environment
+from particle import Particle
 
 pygame.init()
 
@@ -20,6 +22,10 @@ if __name__ == "__main__":
     screenHeight = int(defaults['screen']['height'])
     FPS          = int(defaults['screen']['FPS'])
     
+    gravity       = float(defaults['constants']['gravity'])
+    airResistance = float(defaults['constants']['air_resistance'])
+    energyLoss    = float(defaults['constants']['energy_loss'])
+    
     aspectRatio = screenWidth / screenHeight
     
     centerX = screenWidth / 2
@@ -31,12 +37,14 @@ if __name__ == "__main__":
     # Screen Setup
     screen = pygame.display.set_mode((screenWidth, screenHeight))
     clock = pygame.time.Clock()
-    icon = pygame.Surface((32, 32)); icon.fill((250, 240, 240))
+    icon = pygame.Surface((32, 32)); icon.set_colorkey((0, 0, 0))
     
     pygame.display.set_caption("Particle Engine | FPS: N/A | Particles: N/A")
     pygame.display.set_icon(icon)
     
     # Create Particles
+    environment = Environment(screen, gravity, pygame.Vector2(0, 1), airResistance, energyLoss)
+    
     size = 30
     color = 255, 255, 255
     
@@ -49,11 +57,11 @@ if __name__ == "__main__":
         for x in range(width):
             for y in range(height):
                 Particle(
+                    environment,
                     x * spacing + centerX - ((width  - 1) * halfSpacing),
                     y * spacing + centerY - ((height - 1) * halfSpacing),
                     size, color
-                )   
-    #createGrid(1, 8)
+                )
     
     mousePosition = pygame.Vector2(pygame.mouse.get_pos())
     mouseButtons = pygame.mouse.get_pressed(); oldMouseButtons = mouseButtons
@@ -73,21 +81,15 @@ if __name__ == "__main__":
         
         # Spawn Particles with Mouse
         if mouseButtons[0] and not oldMouseButtons[0]:
-            Particle(mousePosition.x, mousePosition.y, size, color)
+            Particle(environment, mousePosition.x, mousePosition.y, size, color)
         
         # Update Particles
-        Particle.resolveCollisions()
-        
-        for particle in particleGroup:
-            particle.move() 
-        for particle in particleGroup:
-            particle.update()
-            particle.draw(screen)
+        environment.step()
         
         pygame.display.update()
         clock.tick(FPS)
         
-        pygame.display.set_caption(f"Particle Engine | FPS: {clock.get_fps():.2f} | Particles: {len(particleGroup)}")
+        pygame.display.set_caption(f"Particle Engine | FPS: {clock.get_fps():.2f} | Particles: {len(environment.particles)}")
         
         oldMouseButtons = mouseButtons
     

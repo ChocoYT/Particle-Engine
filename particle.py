@@ -1,26 +1,15 @@
 import pygame
-import numpy as np
-from configobj import ConfigObj
+
 from typing import Union
-from os import getcwd
 
 number = Union[int, float]
 
-# Load Config File
-path = getcwd()
-defaults = ConfigObj(f'{path}\\defaults.ini')
-
-# Variable Initialisation
-screenWidth  = int(defaults['screen']['width'])
-screenHeight = int(defaults['screen']['height'])
-
-gravity       = float(defaults['constants']['gravity'])
-airResistance = float(defaults['constants']['air_resistance'])
-energyLoss    = float(defaults['constants']['energy_loss'])
-
 class Particle(pygame.sprite.Sprite):
-    def __init__(self, x: number, y: number, size: number, color: tuple[number]) -> None:
+    def __init__(self, environment, x: number, y: number, size: number, color: tuple[number]) -> None:
         super().__init__()
+        
+        self.environment = environment
+        self.environment.particles.add(self)
         
         self.x,  self.y  = x, y
         self.vx, self.vy = 0, 0
@@ -36,16 +25,20 @@ class Particle(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.center = self.x, self.y
         
-        particleGroup.add(self)
-        
         self.update()
-        self.draw(pygame.display.get_surface())
+        self.draw(environment.screen)
         
     def move(self) -> None:
         # Apply Gravity
-        self.vy += gravity
+        gravity = self.environment.gravity
+        gravityDirection = self.environment.gravityDirection
+        
+        self.vx += gravity * gravityDirection.x
+        self.vy += gravity * gravityDirection.y
         
         # Apply Drag Forces
+        airResistance = self.environment.airResistance
+        
         self.vx *= airResistance
         self.vy *= airResistance
         
@@ -77,6 +70,9 @@ class Particle(pygame.sprite.Sprite):
         return False
     
     def wallCollide(self) -> None:
+        screenWidth, screenHeight = self.environment.screenWidth, self.environment.screenHeight
+        energyLoss = self.environment.energyLoss
+        
         # Left & Right Wall Collision
         if self.x < self.radius:
             self.x = self.radius
@@ -92,63 +88,3 @@ class Particle(pygame.sprite.Sprite):
         elif self.y > screenHeight - self.radius:
             self.y = screenHeight - self.radius
             self.vy *= -energyLoss
-            
-    @classmethod
-    def resolveCollisions(cls) -> None:
-        collisionFound = True
-        threshold = 1e-6
-
-        while collisionFound:
-            collisionFound = False
-
-            for particleA in particleGroup:
-                for particleB in particleGroup:
-                    if particleA is particleB:
-                        continue
-                    if not particleA.isColliding(particleB):
-                        continue
-
-                    collisionFound = True
-
-                    distVector = particleA.getDistVector(particleB)
-                    dist = distVector.magnitude()
-
-                    if dist == 0:
-                        particleB.y -= (particleA.radius + particleB.radius) * np.sign(gravity)
-                        distVector = particleA.getDistVector(particleB)
-                        dist = distVector.magnitude()
-
-                    overlap = particleA.radius + particleB.radius - dist
-                    correction = distVector.normalize() * (overlap / 2 + threshold)
-
-                    particleA.x -= correction.x
-                    particleA.y -= correction.y
-                    particleB.x += correction.x
-                    particleB.y += correction.y
-
-                    posA = pygame.Vector2(particleA.x, particleA.y)
-                    posB = pygame.Vector2(particleB.x, particleB.y)
-                    velA = pygame.Vector2(particleA.vx, particleA.vy)
-                    velB = pygame.Vector2(particleB.vx, particleB.vy)
-
-                    normal = (posB - posA).normalize()
-                    tangent = pygame.Vector2(-normal.y, normal.x)
-
-                    # Calculate Trig for Velocities
-                    normalVelA = velA.dot(normal)
-                    tangentVelA = velA.dot(tangent)
-                    normalVelB = velB.dot(normal)
-                    tangentVelB = velB.dot(tangent)
-
-                    # Swap Velocities
-                    normalVelA, normalVelB = normalVelB, normalVelA
-
-                    # Calculate Final Velocities
-                    velA = normal * normalVelA + tangent * tangentVelA * energyLoss
-                    velB = normal * normalVelB + tangent * tangentVelB * energyLoss
-
-                    particleA.vx, particleA.vy = velA.x, velA.y
-                    particleB.vx, particleB.vy = velB.x, velB.y
-    
-        
-particleGroup: set[Particle] = pygame.sprite.Group()
