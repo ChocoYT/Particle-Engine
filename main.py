@@ -31,10 +31,13 @@ if __name__ == "__main__":
     # Screen Setup
     screen = pygame.display.set_mode((screenWidth, screenHeight))
     clock = pygame.time.Clock()
-    pygame.display.set_caption("Particle Engine")
+    icon = pygame.Surface((32, 32)); icon.fill((250, 240, 240))
+    
+    pygame.display.set_caption("Particle Engine | FPS: N/A | Particles: N/A")
+    pygame.display.set_icon(icon)
     
     # Create Particles
-    size = 10
+    size = 30
     color = 255, 255, 255
     
     def createGrid(width: int, height: int) -> None:
@@ -50,28 +53,43 @@ if __name__ == "__main__":
                     y * spacing + centerY - ((height - 1) * halfSpacing),
                     size, color
                 )   
-    createGrid(1, 2)
+    #createGrid(1, 8)
+    
+    mousePosition = pygame.Vector2(pygame.mouse.get_pos())
+    mouseButtons = pygame.mouse.get_pressed(); oldMouseButtons = mouseButtons
     
     # Main Loop
     run = True
     while run:
+        mouseButtons = pygame.mouse.get_pressed()
+        
         for event in pygame.event.get():
+            if event.type == pygame.MOUSEMOTION:
+                mousePosition = pygame.Vector2(pygame.mouse.get_pos())
             if event.type == pygame.QUIT:
                 run = False
                 
         screen.fill((0, 0, 0))
         
+        # Spawn Particles with Mouse
+        if mouseButtons[0] and not oldMouseButtons[0]:
+            Particle(mousePosition.x, mousePosition.y, size, color)
+        
         # Update Particles
+        Particle.resolveCollisions()
+        
         for particle in particleGroup:
-            particle.move()
+            particle.move() 
         for particle in particleGroup:
-            while particle.isColliding(particleGroup):  particle.resolveCollisions()
-            
             particle.update()
             particle.draw(screen)
         
         pygame.display.update()
         clock.tick(FPS)
+        
+        pygame.display.set_caption(f"Particle Engine | FPS: {clock.get_fps():.2f} | Particles: {len(particleGroup)}")
+        
+        oldMouseButtons = mouseButtons
     
 pygame.quit()
 exit()
