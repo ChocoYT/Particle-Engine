@@ -125,8 +125,8 @@ class Environment:
                         velocity = pygame.Vector2(particle.vx, particle.vy)
                         reflected = velocity - 2 * velocity.dot(normalVec) * normalVec * self.energyLoss
                         
-                        particle.x += overlap * normalVec.x
-                        particle.y += overlap * normalVec.y - 1
+                        particle.x += overlap * normalVec.x - (self.gravity * self.gravityDirection.x)
+                        particle.y += overlap * normalVec.y - (self.gravity * self.gravityDirection.y)
                         
                         particle.vx, particle.vy = reflected.x, reflected.y
 
