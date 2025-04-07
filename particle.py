@@ -46,7 +46,7 @@ class Particle(pygame.sprite.Sprite):
         self.x += self.vx
         self.y += self.vy
         
-        self.wallCollide()
+        self.wallCollide(True)
         
     def update(self) -> None:
         self.rect.center = self.x, self.y
@@ -55,7 +55,7 @@ class Particle(pygame.sprite.Sprite):
         surface.blit(self.image, self.rect.topleft)
         
     def getDistVector(self, particle) -> pygame.Vector2:
-        return pygame.Vector2(particle.x - self.x, particle.y - self.y)
+        return pygame.Vector2(self.x - particle.x, self.y - particle.y)
     
     def getDist(self, particle) -> float:
         return self.getDistVector(particle).magnitude()
@@ -69,22 +69,31 @@ class Particle(pygame.sprite.Sprite):
             
         return False
     
-    def wallCollide(self) -> None:
+    def wallCollide(self, changeVelocities: bool) -> bool:
         screenWidth, screenHeight = self.environment.screenWidth, self.environment.screenHeight
         energyLoss = self.environment.energyLoss
+        
+        collidedHorizontal = True
+        collidedVertical   = True
         
         # Left & Right Wall Collision
         if self.x < self.radius:
             self.x = self.radius
-            self.vx *= -energyLoss
+            if changeVelocities:  self.vx *= -energyLoss
         elif self.x > screenWidth - self.radius:
             self.x = screenWidth - self.radius
-            self.vx *= -energyLoss
+            if changeVelocities:  self.vx *= -energyLoss
+        else:
+            collidedHorizontal = False
         
         # Top & Bottom Wall Collision
         if self.y < self.radius:
             self.y = self.radius
-            self.vy *= -energyLoss
+            if changeVelocities:  self.vy *= -energyLoss
         elif self.y > screenHeight - self.radius:
             self.y = screenHeight - self.radius
-            self.vy *= -energyLoss
+            if changeVelocities:  self.vy *= -energyLoss
+        else:
+            collidedVertical = False
+            
+        return collidedHorizontal or collidedVertical

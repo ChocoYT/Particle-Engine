@@ -6,6 +6,7 @@ from os import getcwd
 
 from environment import Environment
 from particle import Particle
+from track import Track
 
 pygame.init()
 
@@ -66,6 +67,8 @@ if __name__ == "__main__":
     mousePosition = pygame.Vector2(pygame.mouse.get_pos())
     mouseButtons = pygame.mouse.get_pressed(); oldMouseButtons = mouseButtons
     
+    startPlacement = mousePosition
+    
     # Main Loop
     run = True
     while run:
@@ -80,8 +83,13 @@ if __name__ == "__main__":
         screen.fill((0, 0, 0))
         
         # Spawn Particles with Mouse
-        if mouseButtons[0] and not oldMouseButtons[0]:
+        if not mouseButtons[0] and oldMouseButtons[0]:
             Particle(environment, mousePosition.x, mousePosition.y, size, color)
+            
+        if mouseButtons[2] and not oldMouseButtons[2]:
+            startPlacement = mousePosition
+        if not mouseButtons[2] and oldMouseButtons[2]:
+            Track(environment, startPlacement, mousePosition, color, 2)
         
         # Update Particles
         environment.step()
